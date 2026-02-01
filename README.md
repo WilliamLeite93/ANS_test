@@ -1,38 +1,61 @@
-Teste de Engenharia de Dados - Seção 1
-Este repositório contém a solução para a Seção 1: Integração e Consolidação de Dados da ANS. O projeto foi estruturado de forma modular para garantir escalabilidade e facilidade de manutenção.
+Teste de Engenharia de Dados - ANS
+Este repositório contém a solução para o desafio técnico da ANS, dividido em integração, consolidação e transformação de dados financeiros de operadoras de saúde.
 
-Estrutura do Projeto
+🛠️ Estrutura do Projeto
+O projeto segue uma arquitetura modular para facilitar a manutenção e o versionamento:
 
-downloader.py: Responsável por acessar o servidor de dados abertos da ANS, baixar os arquivos ZIP dos últimos 3 trimestres e realizar a extração automática.
+scripts/downloader.py: Responsável por acessar o servidor de dados abertos da ANS e baixar os arquivos ZIP das demonstrações contábeis.
 
-processador.py: Realiza a leitura dos arquivos extraídos, aplica filtros de regras de negócio, trata inconsistências e gera o arquivo consolidado final.
+scripts/processador.py: Realiza a extração, filtragem (Conta 411) e consolidação inicial da Seção 1.
 
-/data/raw/: Pasta local onde os arquivos brutos e extraídos são armazenados.
+scripts/transformador.py: Executa o enriquecimento (Join), validações matemáticas de CNPJ e gera as agregações estatísticas da Seção 2.
 
-/data/processed/: Pasta onde o resultado final (consolidado_despesas.zip) é gerado.
+/data/: Pasta (ignorada no Git) que armazena os dados brutos (raw) e processados (processed).
 
- Decisões Técnicas e Trade-offs
+🚀 Decisões Técnicas e Trade-offs
+1. Processamento Incremental (Seção 1)
+Escolha: Processamento em blocos por trimestre. Justificativa: Os arquivos da ANS são volumosos. Ao processar um trimestre por vez e filtrar apenas as contas analíticas (9 dígitos) do grupo 411, reduzimos drasticamente o consumo de memória RAM, garantindo que o pipeline rode em ambientes com recursos limitados sem travamentos (Out of Memory).
 
-1. Processamento Incremental vs. Memória
-Escolha: Processamento Incremental. Justificativa: Os arquivos de Demonstrações Contábeis da ANS são extremamente volumosos. Carregar todos simultaneamente em memória (Dataframes) poderia causar o travamento do sistema (Out of Memory). Ao processar um trimestre por vez, garantimos que o script seja resiliente e rode em máquinas com recursos limitados.
+2. Tratamento de Fontes Instáveis (Seção 2)
+Estratégia: Download manual e limpeza via módulo csv. Justificativa: Durante o desenvolvimento, o servidor da ANS apresentou instabilidades e bloqueios de acesso via script (HTTP 403/503). Optou-se pelo download manual do Relatorio_cadop.csv para garantir a continuidade. Além disso, o arquivo continha metadados administrativos no topo, o que exigiu uma lógica de limpeza linha a linha para identificar a "âncora" do cabeçalho real antes da carga no Pandas.
 
-2. Identificação de Despesas com Sinistros
-Critério: Filtragem pelo prefixo contábil 411. Justificativa: Conforme o Plano de Contas Padrão da ANS, as despesas com Eventos e Sinistros são mapeadas estritamente no grupo 411. Para garantir a precisão dos valores e evitar a duplicidade de somar contas "pai" (sintéticas) e "filhas" (analíticas), o script filtra apenas as contas com 9 dígitos.
+3. Validação de CNPJ e Integridade (Seção 2.1)
+Estratégia: Implementação da lógica de dígitos verificadores (Módulo 11). Trade-off: Registros com CNPJ matematicamente inválidos foram descartados.
 
-🔍 Análise Crítica e Tratamento de Inconsistências
-Durante a consolidação (Requisito 1.3), o script aplica as seguintes regras para garantir a qualidade dos dados:
+Prós: Garante que o resultado final contenha apenas entidades jurídicas reais, evitando lixo no banco de dados.
 
-Valores Negativos e Zerados: Foram identificados registros com saldos nulos ou negativos. Como o objetivo é analisar despesas efetivas, estes registros foram descartados para não distorcer as métricas financeiras.
+Contras: Pequena perda de dados financeiros caso a operadora tenha um erro de digitação no cadastro oficial.
 
-Normalização de Tipos: A coluna de valores foi convertida de string (padrão brasileiro com vírgula) para float, tratando erros de conversão de forma resiliente para evitar a interrupção do pipeline.
+4. Enriquecimento via Registro ANS (Seção 2.2)
+Estratégia: Left Join utilizando RegistroANS como chave primária. Justificativa: Como os arquivos financeiros não trazem o CNPJ nativamente, utilizamos o RegistroANS (ID único da operadora) como ponte para buscar o CNPJ e a Razão Social no cadastro, garantindo 100% de precisão no cruzamento.
 
-Inconsistência de Datas: Para evitar conflitos de formatos de data entre diferentes trimestres, o script extrai o Ano e o Trimestre diretamente do contexto da estrutura de diretórios, garantindo uma padronização uniforme no CSV final.
+🔍 Análise Crítica de Dados
+Valores Negativos: Registros com saldos nulos ou negativos foram removidos, pois despesas com sinistros devem ser obrigatoriamente valores positivos para fins de agregação.
 
-Colunas Obrigatórias: O arquivo final foi estruturado com as colunas CNPJ, RazaoSocial, Trimestre, Ano e ValorDespesas. As colunas de identificação (CNPJ e RazaoSocial) foram criadas como placeholders para serem populadas via enriquecimento na Seção 2.
+Estatísticas: Foram calculados a Média e o Desvio Padrão. O desvio padrão é essencial para identificar operadoras com alta volatilidade de gastos entre os trimestres, o que pode indicar sazonalidade ou sinistros atípicos.
+
+Ordenação: Os dados finais foram ordenados de forma decrescente pelo valor total, priorizando a visualização das operadoras com maior impacto financeiro.
 
 📋 Como Executar
+Ambiente: Recomenda-se o uso de um ambiente virtual (venv).
 
-Instale as dependências necessárias: pip install pandas requests openpyxl
+Dependências:
 
-Execute o download dos dados: python downloader.py
-Execute o processamento e consolidação: python processador.py
+Bash
+
+pip install pandas requests openpyxl
+Execução:
+
+Bash
+
+# Baixar dados contábeis (Cadastro deve ser colocado em data/raw manualmente se o servidor falhar)
+python scripts/downloader.py
+
+# Gerar consolidado inicial
+python scripts/processador.py
+
+# Gerar agregação final, validação de CNPJ e ZIP
+python scripts/transformador.py
+Com este README, seu projeto está com uma documentação de nível sênior!
+
+"Para a persistência de dados (Seção 3), utilizamos o SQLAlchemy pela facilidade de mapeamento objeto-relacional e o driver Psycopg2 para integração nativa com o PostgreSQL via Docker."

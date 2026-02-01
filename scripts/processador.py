@@ -2,16 +2,11 @@ import os
 import pandas as pd
 import zipfile
 
-# Configurações
 DATA_RAW = "./data/raw"
 DATA_SAIDA = "./data/processed"
-ARQUIVO_SAIDA = "consolidado_despesas.csv"
-ARQUIVO_ZIP = "consolidado_despesas.zip"
 
 def processar_dados():
-    print("--- Executando Requisitos 1.2 e 1.3 ---")
-    
-    # Criar diretório de saída se não existir
+    print("--- Executando Processador ---")
     os.makedirs(DATA_SAIDA, exist_ok=True)
     
     lista_consolidada = []
@@ -19,69 +14,40 @@ def processar_dados():
     
     for nome_pasta in pastas:
         caminho_pasta = os.path.join(DATA_RAW, nome_pasta)
-        if not os.path.exists(caminho_pasta):
-            print(f"Aviso: Pasta {nome_pasta} não encontrada.")
-            continue
+        if not os.path.exists(caminho_pasta): continue
 
-        for nome_arquivo in os.listdir(caminho_pasta):
-            if nome_arquivo.lower().endswith(('.csv', '.txt', '.xlsx')):
-                caminho_completo = os.path.join(caminho_pasta, nome_arquivo)
-                print(f"Processando: {nome_arquivo}...")
-                
-                if nome_arquivo.lower().endswith('.xlsx'):
-                    df = pd.read_excel(caminho_completo)
-                else:
-                    df = pd.read_csv(caminho_completo, sep=';', encoding='latin1', low_memory=False)
-
+        for arq in os.listdir(caminho_pasta):
+            if arq.lower().endswith('.csv'):
+                print(f"Processando: {arq}")
+                df = pd.read_csv(os.path.join(caminho_pasta, arq), sep=';', encoding='latin1', low_memory=False)
                 df.columns = df.columns.str.strip().str.upper()
 
+                # Filtro Conta 411 (Sinistros)
                 if 'CD_CONTA_CONTABIL' in df.columns:
                     df['CD_CONTA_CONTABIL'] = df['CD_CONTA_CONTABIL'].astype(str)
+                    df_filt = df[(df['CD_CONTA_CONTABIL'].str.startswith('411')) & (df['CD_CONTA_CONTABIL'].str.len() == 9)].copy()
                     
-                    df_filt = df[
-                        (df['CD_CONTA_CONTABIL'].str.startswith('411')) & 
-                        (df['CD_CONTA_CONTABIL'].str.len() == 9)
-                    ].copy()
-
-                    # --- CORREÇÃO DO ERRO DE TIPO (KISS) ---
-                    # 1. Garante que é string, remove espaços e troca vírgula por ponto
-                    df_filt['VL_SALDO_FINAL'] = (
-                        df_filt['VL_SALDO_FINAL']
-                        .astype(str)
-                        .str.strip()
-                        .str.replace(',', '.')
-                    )
-                    
-                    # 2. Converte para numérico (erros viram NaN para não travar o script)
-                    df_filt['VL_SALDO_FINAL'] = pd.to_numeric(df_filt['VL_SALDO_FINAL'], errors='coerce')
-                    
-                    # 3. Remove os NaNs gerados por erro de conversão e só então filtra > 0
-                    df_filt = df_filt.dropna(subset=['VL_SALDO_FINAL'])
+                    df_filt['VL_SALDO_FINAL'] = pd.to_numeric(df_filt['VL_SALDO_FINAL'].astype(str).str.replace(',', '.'), errors='coerce')
                     df_filt = df_filt[df_filt['VL_SALDO_FINAL'] > 0]
 
-                    # Criando colunas obrigatórias
-                    df_filt['CNPJ'] = ""
-                    df_filt['RazaoSocial'] = ""
+                    # Mapeamos o REG_ANS para RegistroANS
+                    df_filt['RegistroANS'] = df_filt['REG_ANS']
                     df_filt['Trimestre'] = nome_pasta[:2]
                     df_filt['Ano'] = nome_pasta[2:]
                     
-                    df_resumo = df_filt[['CNPJ', 'RazaoSocial', 'Trimestre', 'Ano', 'VL_SALDO_FINAL']]
-                    df_resumo.columns = ['CNPJ', 'RazaoSocial', 'Trimestre', 'Ano', 'ValorDespesas']
-                    
-                    lista_consolidada.append(df_resumo)
+                    lista_consolidada.append(df_filt[['RegistroANS', 'Trimestre', 'Ano', 'VL_SALDO_FINAL']])
 
     if lista_consolidada:
-        resultado_final = pd.concat(lista_consolidada, ignore_index=True)
-        resultado_final.to_csv(os.path.join(DATA_SAIDA, ARQUIVO_SAIDA), index=False, sep=';', encoding='utf-8')
+        resultado = pd.concat(lista_consolidada, ignore_index=True)
+        # Criamos as colunas pedidas no 1.3 (vazias, para serem preenchidas no transformador)
+        resultado['CNPJ'] = ""
+        resultado['RazaoSocial'] = ""
         
-        caminho_zip = os.path.join(DATA_SAIDA, ARQUIVO_ZIP)
-        with zipfile.ZipFile(caminho_zip, 'w') as z:
-            z.write(os.path.join(DATA_SAIDA, ARQUIVO_SAIDA), arcname=ARQUIVO_SAIDA)
-            
-        print(f"Sucesso! O arquivo '{caminho_zip}' foi gerado.")
-        print(f"Total de registros: {len(resultado_final)}")
-    else:
-        print("Nenhum dado processado.")
+        resultado = resultado[['CNPJ', 'RazaoSocial', 'Trimestre', 'Ano', 'VL_SALDO_FINAL', 'RegistroANS']]
+        resultado.columns = ['CNPJ', 'RazaoSocial', 'Trimestre', 'Ano', 'ValorDespesas', 'RegistroANS']
+        
+        resultado.to_csv(os.path.join(DATA_SAIDA, "consolidado_despesas.csv"), index=False, sep=';', encoding='utf-8')
+        print("Arquivo consolidado gerado com sucesso.")
 
 if __name__ == "__main__":
     processar_dados()

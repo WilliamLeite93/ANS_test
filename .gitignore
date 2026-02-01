@@ -1,4 +1,15 @@
-data/
-
+# Ambiente Virtual
+.venv/
 __pycache__/
-.DS_Store
+
+# Dados (Não subir os CSVs pesados)
+data/
+*.csv
+*.zip
+
+# Docker
+postgres_data/
+
+# IDEs
+.vscode/
+.idea/
