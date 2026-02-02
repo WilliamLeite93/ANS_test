@@ -1,5 +1,12 @@
+# Manipulação de Dados e Download
 requests>=2.31.0
 pandas>=2.1.0
 openpyxl>=3.1.2
-sqlalchemy
-psycopg2-binary
+
+# Banco de Dados (PostgreSQL)
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Backend e Servidor API
+fastapi>=0.100.0
+uvicorn>=0.22.0

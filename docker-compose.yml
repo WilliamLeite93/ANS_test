@@ -1,18 +1,17 @@
 version: '3.8'
 
 services:
-  db:
+  ans_database:
     image: postgres:15
     container_name: ans_database
-    restart: always
     environment:
-      POSTGRES_USER: william_user
-      POSTGRES_PASSWORD: ans_password
-      POSTGRES_DB: ans_financeiro
+      - POSTGRES_USER=william_final
+      - POSTGRES_PASSWORD=senha_ans_2026
+      - POSTGRES_DB=ans_financeiro
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_final:/var/lib/postgresql/data  # Nome do volume alterado aqui
 
 volumes:
-  postgres_data:
+  postgres_data_final:  # Nome do volume alterado aqui
