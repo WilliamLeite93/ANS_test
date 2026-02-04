@@ -1,0 +1,46 @@
+{
+  "info": {
+    "_postman_id": "2952d34b-f48e-4b0b-b420-baafc82b78d2",
+    "name": "ANS Financeiro - API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Lista de Operadoras Filtradas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/operadoras?busca=UNIMED&page=1&limit=15",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "operadoras"],
+          "query": [
+            { "key": "busca", "value": "UNIMED" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "15" }
+          ]
+        },
+        "description": "Retorna a lista de operadoras filtradas por nome ou CNPJ."
+      },
+      "response": []
+    },
+    {
+      "name": "Dashboard de Estatísticas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/estatisticas",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "estatisticas"]
+        },
+        "description": "Retorna os dados agregados para os gráficos de Top 5 e Distribuição por UF."
+      },
+      "response": []
+    }
+  ]
+}

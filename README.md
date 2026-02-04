@@ -1,71 +1,74 @@
-Teste de Engenharia de Dados - ANS
-Este repositório contém a solução completa para o desafio técnico da ANS, abrangendo desde a extração e consolidação de dados financeiros até a disponibilização de uma API de alto desempenho para consulta de operadoras de saúde.
-
-🛠️ Estrutura do Projeto
-O projeto segue uma arquitetura modular para facilitar a manutenção e o isolamento de responsabilidades:
-
-scripts/processador.py: Consolida os arquivos brutos da ANS (Trimestres), realiza a filtragem (Conta 411) e gera o arquivo consolidado inicial (Seção 2.1).
-
-scripts/transformador.py: Executa o enriquecimento (Join com CADOP), gera as agregações estatísticas e cria o arquivo compactado para entrega (Seção 2.2 e 2.3).
-
-scripts/carregar_banco.py: Cria a estrutura de tabelas e índices no PostgreSQL e realiza a carga dos dados processados (Seção 3).
-
-main.py: Servidor Backend utilizando FastAPI para disponibilizar os endpoints de consulta e estatísticas (Seção 4).
-
-/data/: Diretório organizado em raw (dados brutos) e processed (dados transformados).
-
-🚀 Como Executar o Projeto
+Como Executar o Projeto
 1. Pré-requisitos
-Python 3.10+
 
-PostgreSQL (com uma base de dados criada chamada ans_financeiro).
+Python 3.10+ e PostgreSQL > 10.0.
 
-Node.js (Necessário para a futura etapa de Frontend).
+Node.js para a interface Vue.js.
 
-2. Instalação e Ambiente
-Crie um ambiente virtual e instale as dependências necessárias para garantir o isolamento do projeto:
+2. Preparação e Instalação
+Na raiz do projeto:
 
 PowerShell
 
 python -m venv .venv
-.venv\Scripts\activate  # No Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
-3. Pipeline de Processamento (Passo a Passo)
-Os scripts devem ser executados na ordem lógica do fluxo de dados:
+3. Execução do Fluxo de Dados
+Os scripts devem ser executados na ordem abaixo para respeitar as dependências:
 
-Consolidação: Processa os CSVs brutos dos trimestres na pasta data/raw.
+ETL - Seção 1: python scripts/processador.py (Consolidação trimestral e filtragem da conta 411).
 
-python scripts/processador.py
+ETL - Seção 2: python scripts/transformador.py (Join cadastral, validações e agregação estatística).
 
-Transformação: Cruza os dados financeiros com o cadastro de operadoras e gera as métricas.
+Banco - Seção 3: python scripts/carregar_banco.py (DML/DDL para carga no PostgreSQL).
 
-python scripts/transformador.py
+API - Seção 4.2: uvicorn main:app --reload (Disponibiliza os endpoints na porta 8000).
 
-Carga no Banco: Migra os resultados para o PostgreSQL.
+Interface - Seção 4.3: ```powershell cd frontend npm install npm run dev
 
-python scripts/carregar_banco.py
 
-4. Execução da API
-Para iniciar o servidor e acessar a documentação interativa automática (Swagger):
+🧠 Trade-offs Técnicos e Justificativas
+1. Integração e Processamento (Seção 1)
+Estratégia de Processamento (1.2): Optei pelo processamento incremental por trimestre. Dado o volume massivo dos arquivos da ANS, carregar tudo em memória de uma vez causaria estouro de RAM. O processamento incremental garante estabilidade.
 
-PowerShell
 
-uvicorn main:app --reload
-Acesse: http://127.0.0.1:8000/docs
 
-🧠 Decisões Técnicas e Trade-offs
-1. Processamento em Blocos (Memória vs. Velocidade)
-Os arquivos da ANS são volumosos. Optei pelo processamento incremental por trimestre e filtragem precoce do grupo contábil 411. Isso reduz drasticamente o consumo de memória RAM, permitindo que o pipeline rode em máquinas com recursos limitados sem travamentos.
+Tratamento de Inconsistências (1.3): Identificamos CNPJs com formatações variadas e valores negativos. A abordagem foi a normalização para string pura e filtragem de valores inválidos para manter a integridade dos cálculos.
 
-2. Otimização de Consultas (Estatísticas Pré-agregadas)
-Em vez de calcular médias e desvios padrão em tempo real na API (o que seria custoso para o banco), a rota /api/estatisticas consome a tabela despesas_agregadas. Esta tabela é gerada durante a fase de transformação, garantindo respostas em milissegundos para o usuário final.
 
-3. Modelagem de Dados e Integridade
-Tipagem: Utilizei NUMERIC para valores monetários para garantir precisão decimal e TEXT para CNPJ para preservar zeros à esquerda.
+2. Transformação e Validação (Seção 2)
 
-Tratamento de Inconsistências: Identificamos sufixos residuais em CNPJs vindos do processamento via Pandas (.0) e implementamos buscas flexíveis com o operador LIKE no SQL para garantir que a pesquisa funcione independentemente da formatação.
+CNPJs Inválidos (2.1): Registros com dígitos verificadores incorretos foram marcados como suspeitos, mas preservados para não omitir despesas reais, priorizando a visibilidade financeira.
 
-CORS: Implementado middleware para permitir que o futuro frontend (Vue.js) acesse os recursos do backend sem bloqueios de segurança do navegador.
 
-4. Índices Estratégicos
-Foram criados índices nas colunas cnpj, uf e raz (Razão Social). Isso garante que buscas textuais e filtros por localização sejam instantâneos, mesmo com o banco contendo centenas de milhares de registros.
+Estratégia de Join (2.2): O Join com o CADOP foi realizado via Pandas (Left Join) utilizando o RegistroANS como chave. Registros sem match no cadastro foram mantidos para garantir que o total de despesas não fosse subestimado.
+
+
+Ordenação (2.3): Realizada no final do processo de agregação para otimizar o tempo de CPU apenas no conjunto de dados reduzido.
+
+3. Banco de Dados (Seção 3)
+
+Normalização (3.2): Escolhi a Opção B (Tabelas separadas). Isso facilita atualizações cadastrais sem replicar dados financeiros redundantes, reduzindo o armazenamento.
+
+
+
+Tipagem (3.2): NUMERIC para valores monetários para evitar erros de arredondamento de ponto flutuante.
+
+4. API e Interface (Seção 4)
+
+Framework (4.2.1): FastAPI pela documentação automática (Swagger) e performance superior a frameworks síncronos.
+
+
+Estatísticas (4.2.3): Opção C (Tabela pré-calculada). Como os dados são históricos/trimestrais, não há necessidade de reprocessar milhões de linhas em cada requisição.
+
+
+
+Busca Frontend (4.3.1): Busca no Servidor. Essencial para escalabilidade, enviando apenas o necessário para o navegador.
+
+
+
+Gerenciamento de Estado (4.3.2): Props/Events simples, evitando complexidade desnecessária para as funcionalidades atuais.
+
+📂 Entrega e Documentação
+
+Coleção Postman (4.4): O arquivo ANS_API_Collection.json contém exemplos reais de requisição para todos os endpoints.

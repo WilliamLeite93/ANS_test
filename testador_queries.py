@@ -5,7 +5,6 @@ DB_URL = "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeir
 
 def testar_analises():
     engine = create_engine(DB_URL)
-     # Agora é um dicionário correto com nomes e comandos SQL separados
     queries = {
     "Query 1 - Crescimento Percentual": """
         WITH consolidado_por_periodo AS (
@@ -75,7 +74,7 @@ def testar_analises():
             print(f"\n[Executando: {nome}]")
             df = pd.read_sql(text(sql), conn)
             if df.empty:
-                print("⚠️  Aviso: A query não retornou dados. Verifique se os filtros (Ano/Tri) existem no seu CSV.")
+                print("Aviso: A query não retornou dados. Verifique se os filtros (Ano/Tri) existem no seu CSV.")
             else:
                 print(df)
 

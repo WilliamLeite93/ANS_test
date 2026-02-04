@@ -8,24 +8,22 @@ ARQUIVO_AGREGADO = "./data/processed/despesas_agregadas.csv"
 
 def carregar_para_postgres():
     if not os.path.exists(ARQUIVO_ENRIQUECIDO) or not os.path.exists(ARQUIVO_AGREGADO):
-        print("❌ Arquivos necessários não encontrados em ./data/processed/")
+        print("Arquivos necessários não encontrados em ./data/processed/")
         return
 
     try:
         engine = create_engine(DB_URL, client_encoding='utf8')
         
-        # --- CARGA DA TABELA PRINCIPAL (DESPESAS) ---
-        print("📖 Lendo dados enriquecidos...")
+        print("Lendo dados enriquecidos...")
         df = pd.read_csv(ARQUIVO_ENRIQUECIDO, sep=';', encoding='utf-8')
         df.columns = ['reg', 'tri', 'ano', 'val', 'cnpj', 'raz', 'mod', 'uf']
 
-        print("🧹 Higienizando strings...")
+        print("Higienizando strings...")
         for col in df.select_dtypes(include=['object', 'string']).columns:
             df[col] = df[col].fillna('').astype(str).str.strip()
 
-        print("🗄️ Preparando tabelas no banco...")
+        print("Preparando tabelas no banco...")
         with engine.begin() as conn:
-            # Tabela Despesas (Seção 3.1)
             conn.execute(text("DROP TABLE IF EXISTS despesas CASCADE;"))
             conn.execute(text("""
                 CREATE TABLE despesas (
@@ -40,13 +38,11 @@ def carregar_para_postgres():
                 );
             """))
             
-            print(f"🚀 Enviando {len(df):,} linhas para 'despesas'...")
+            print(f"Enviando {len(df):,} linhas para 'despesas'...")
             df.to_sql('despesas', conn, if_exists='append', index=False, chunksize=10000, method='multi')
 
-            # --- NOVA TABELA: DESPESAS AGREGADAS (Seção 3.2) ---
-            print("📖 Lendo dados agregados...")
+            print("Lendo dados agregados...")
             df_ag = pd.read_csv(ARQUIVO_AGREGADO, sep=';', encoding='utf-8')
-            # Colunas do CSV: raz, uf, valor_total, media_trimestral, desvio_padrao
             
             conn.execute(text("DROP TABLE IF EXISTS despesas_agregadas;"))
             conn.execute(text("""
@@ -59,11 +55,10 @@ def carregar_para_postgres():
                 );
             """))
 
-            print(f"🚀 Enviando {len(df_ag):,} linhas para 'despesas_agregadas'...")
+            print(f"Enviando {len(df_ag):,} linhas para 'despesas_agregadas'...")
             df_ag.to_sql('despesas_agregadas', conn, if_exists='append', index=False, method='multi')
 
-            # --- ÍNDICES PARA PERFORMANCE ---
-            print("⚡ Criando índices...")
+            print("Criando índices...")
             conn.execute(text("CREATE INDEX idx_cnpj ON despesas(cnpj);"))
             conn.execute(text("CREATE INDEX idx_uf ON despesas(uf);"))
             conn.execute(text("CREATE INDEX idx_agregado_raz ON despesas_agregadas(raz);"))
@@ -71,10 +66,10 @@ def carregar_para_postgres():
             conn.execute(text("ANALYZE despesas;"))
             conn.execute(text("ANALYZE despesas_agregadas;"))
 
-        print("✅ Todas as tabelas foram carregadas e otimizadas com sucesso!")
+        print("Todas as tabelas foram carregadas e otimizadas com sucesso!")
             
     except Exception as e:
-        print(f"💥 Falha crítica: {e}")
+        print(f"Falha crítica: {e}")
 
 if __name__ == "__main__":
     carregar_para_postgres()

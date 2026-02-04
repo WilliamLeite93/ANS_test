@@ -4,21 +4,19 @@ from sqlalchemy import create_engine, text
 from typing import Optional
 import logging
 
-# 1. Configuração de Logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="ANS Financeiro API")
 
-# 2. Habilitar CORS para o Vue.js
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 3. Conexão com o Banco
 DB_URL = "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro"
 engine = create_engine(DB_URL)
 

@@ -3,7 +3,6 @@ import requests
 import zipfile
 from io import BytesIO
 
-# Configurações de acesso
 BASE_URL = "https://dadosabertos.ans.gov.br/FTP/PDA/demonstracoes_contabeis/"
 URL_CADASTRO = "https://dadosabertos.ans.gov.br/FTP/PDA/operadoras_de_planos_de_saude_ativas/Relatorio_cadop.csv"
 DEST_DIR = "./data/raw"
@@ -12,7 +11,6 @@ def download_tudo():
     if not os.path.exists(DEST_DIR):
         os.makedirs(DEST_DIR)
     
-    # 1. Download dos Trimestres
     datasets = [
         {"ano": "2025", "arquivo": "1T2025.zip"},
         {"ano": "2025", "arquivo": "2T2025.zip"},

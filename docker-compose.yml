@@ -11,7 +11,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data_final:/var/lib/postgresql/data  # Nome do volume alterado aqui
+      - postgres_data_final:/var/lib/postgresql/data 
 
 volumes:
-  postgres_data_final:  # Nome do volume alterado aqui
+  postgres_data_final:  

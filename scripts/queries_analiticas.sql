@@ -1,5 +1,4 @@
 WITH consolidado_por_periodo AS (
-    -- Aqui limpamos os negativos e somamos duplicados por CNPJ/Ano/Tri
     SELECT 
         cnpj, 
         raz, 
@@ -7,7 +6,7 @@ WITH consolidado_por_periodo AS (
         tri, 
         SUM(val) as val_total
     FROM despesas
-    WHERE val > 0  -- Tratamento de inconsistência: ignora negativos [cite: 48]
+    WHERE val > 0  
     GROUP BY cnpj, raz, ano, tri
 ),
 periodos AS (
@@ -32,7 +31,7 @@ SELECT
     ((u.valor_final - p.valor_inicial) / NULLIF(p.valor_inicial, 0)) * 100 as crescimento_perc
 FROM primeiro_tri p
 JOIN ultimo_tri u ON p.cnpj = u.cnpj
-WHERE p.valor_inicial > 1000 -- Filtro para evitar crescimentos irreais de base muito baixa
+WHERE p.valor_inicial > 1000 
 ORDER BY crescimento_perc DESC
 LIMIT 5;
 

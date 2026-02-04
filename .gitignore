@@ -21,3 +21,6 @@ postgres_data/
 .vscode/
 .idea/
 
+# Frontend (Node.js)
+frontend/node_modules/
+frontend/dist/

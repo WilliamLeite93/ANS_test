@@ -5,7 +5,7 @@ DATA_RAW = "./data/raw"
 DATA_SAIDA = "./data/processed"
 
 def processar_dados():
-    print("--- Passo 1: Processador (Seção 2.1) ---")
+    print("---Processador de Dados---")
     os.makedirs(DATA_SAIDA, exist_ok=True)
     lista_consolidada = []
     pastas = ["1T2025", "2T2025", "3T2025"]
@@ -28,7 +28,7 @@ def processar_dados():
         resultado = pd.concat(lista_consolidada, ignore_index=True)
         resultado.columns = ['reg', 'tri', 'ano', 'val']
         resultado.to_csv(os.path.join(DATA_SAIDA, "consolidado_despesas.csv"), index=False, sep=';', encoding='utf-8-sig')
-        print("✅ Seção 2.1: Financeiro consolidado com sucesso.")
+        print("Financeiro consolidado com sucesso.")
 
 if __name__ == "__main__":
     processar_dados()
