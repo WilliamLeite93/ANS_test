@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, text
 from typing import Optional
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,7 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_URL = "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro"
+DB_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro",
+)
 engine = create_engine(DB_URL)
 
 @app.get("/api/operadoras")

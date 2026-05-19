@@ -1,7 +1,8 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
+import os
 
-DB_URL = "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro"
+DB_URL = os.getenv("DATABASE_URL", "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro")
 
 def testar_analises():
     engine = create_engine(DB_URL)

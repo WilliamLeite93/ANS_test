@@ -2,7 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 import os
 
-DB_URL = "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro"
+DB_URL = os.getenv("DATABASE_URL", "postgresql://william_final:senha_ans_2026@localhost:5433/ans_financeiro")
 ARQUIVO_ENRIQUECIDO = "./data/processed/consolidado_enriquecido.csv"
 ARQUIVO_AGREGADO = "./data/processed/despesas_agregadas.csv"
 

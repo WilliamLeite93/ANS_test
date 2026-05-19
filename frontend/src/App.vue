@@ -42,9 +42,9 @@
 
         <div style="margin-top: 25px; display: flex; justify-content: center; align-items: center; gap: 15px;">
           
-          <button @click="mudarPagina(1)" :disabled="operadoras.length < 15" :style="{ ...estiloPaginacao(operadoras.length < 15), color: '#000' }">Anterior ⬅️</button>
+          <button @click="mudarPagina(-1)" :disabled="paginaAtual === 1" :style="{ ...estiloPaginacao(paginaAtual === 1), color: '#000' }">Anterior ⬅️</button>
           <span style="font-weight: bold;">Página {{ paginaAtual }}</span>
-          <button @click="mudarPagina(1)" :disabled="operadoras.length < 15" :style="{ ...estiloPaginacao(operadoras.length < 15), color: '#000' }">Próxima ➡️</button>
+          <button @click="mudarPagina(1)" :disabled="paginaAtual * limitePorPagina >= totalOperadoras" :style="{ ...estiloPaginacao(paginaAtual * limitePorPagina >= totalOperadoras), color: '#000' }">Próxima ➡️</button>
 
         </div>
       </section>
@@ -131,6 +131,8 @@ export default {
       estatisticas: null,
       busca: '',
       paginaAtual: 1,
+      limitePorPagina: 15,
+      totalOperadoras: 0,
       selecionada: null,
       historico: [],
       carregandoDetalhes: false
@@ -152,8 +154,9 @@ export default {
     },
     async buscarOperadoras() {
       try {
-        const resp = await api.get('/operadoras', { params: { busca: this.busca, page: this.paginaAtual, limit: 15 } });
+        const resp = await api.get('/operadoras', { params: { busca: this.busca, page: this.paginaAtual, limit: this.limitePorPagina } });
         this.operadoras = resp.data.data;
+        this.totalOperadoras = resp.data.total || 0;
       } catch (err) { console.error("Erro na API de operadoras:", err); }
     },
     async verDetalhes(op) {
@@ -179,6 +182,7 @@ export default {
       this.buscarOperadoras(); 
     },
     mudarPagina(direcao) { 
+      if (this.paginaAtual + direcao < 1) return;
       this.paginaAtual += direcao; 
       this.buscarOperadoras(); 
     },

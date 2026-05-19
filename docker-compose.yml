@@ -1,17 +1,53 @@
-version: '3.8'
-
 services:
-  ans_database:
+  db:
     image: postgres:15
     container_name: ans_database
     environment:
-      - POSTGRES_USER=william_final
-      - POSTGRES_PASSWORD=senha_ans_2026
-      - POSTGRES_DB=ans_financeiro
+      POSTGRES_USER: william_final
+      POSTGRES_PASSWORD: senha_ans_2026
+      POSTGRES_DB: ans_financeiro
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
-      - postgres_data_final:/var/lib/postgresql/data 
+      - postgres_data_final:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U william_final -d ans_financeiro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  etl:
+    image: ans-test-backend
+    command: >
+      sh -c "python scripts/downloader.py &&
+             python scripts/processador.py &&
+             python scripts/transformador.py &&
+             python scripts/carregador_banco.py"
+    environment:
+      DATABASE_URL: postgresql://william_final:senha_ans_2026@db:5432/ans_financeiro
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  api:
+    build: .
+    image: ans-test-backend
+    environment:
+      DATABASE_URL: postgresql://william_final:senha_ans_2026@db:5432/ans_financeiro
+    ports:
+      - "8000:8000"
+    depends_on:
+      etl:
+        condition: service_completed_successfully
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
 
 volumes:
-  postgres_data_final:  
+  postgres_data_final:
